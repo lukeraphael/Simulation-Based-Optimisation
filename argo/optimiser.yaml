@@ -1,0 +1,58 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: optimiser # Name of this Workflow
+
+spec:
+  entrypoint: combined
+
+  templates:
+    - name: combined
+      steps:
+        - - name: simulation1
+            template: simulation-template
+            arguments:
+              parameters: [{ name: port, value: "5001" }]
+
+          - name: simulation2
+            template: simulation-template
+            arguments:
+              parameters: [{ name: port, value: "5002" }]
+
+          - name: simulation3
+            template: simulation-template
+            arguments:
+              parameters: [{ name: port, value: "5003" }]
+
+        - - name: optimization
+            template: optimiser-template
+            arguments:
+              parameters:
+                [
+                  {
+                    name: endpoints,
+                    value: "http://{{steps.simulation1.ip}}:5001/tests/endpoint,
+                      http://{{steps.simulation2.ip}}:5002/tests/endpoint,
+                      http://{{steps.simulation3.ip}}:5003/tests/endpoint",
+                  },
+                ]
+
+    # base templates, main relies on these
+    - name: simulation-template
+      daemon: true
+      inputs:
+        parameters:
+          - name: port
+      container:
+        image: lukeraphael/simulation-wolves
+        command: ["python3", "/wolf_sheep/server1.py"]
+        args: ["{{inputs.parameters.port}}"]
+
+    - name: optimiser-template
+      inputs:
+        parameters:
+          - name: endpoints
+      container:
+        image: lukeraphael/optimiser-argo
+        command: ["python3", "/optimiser/optimiser.py"]
+        args: ["{{inputs.parameters.endpoints}}"]

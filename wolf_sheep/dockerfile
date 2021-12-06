@@ -1,0 +1,12 @@
+
+FROM python:3.9-slim-buster
+
+RUN mkdir /wolf_sheep
+WORKDIR /wolf_sheep
+ADD . /wolf_sheep/
+RUN pip install -r requirements.txt
+
+EXPOSE 5001
+
+ENTRYPOINT [ "python3", "/wolf_sheep/server1.py"]
+CMD ["5000"]
