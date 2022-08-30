@@ -61,7 +61,6 @@ def create_pod_object(app_name, image):
         spec=template.spec
     )
 
-
 def create_pod(pod, namespace):
     # Create deployement
     api = client.CoreV1Api()

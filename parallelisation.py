@@ -1,13 +1,14 @@
 from multiprocessing.pool import ThreadPool
 from kubernetes import client, config
 import numpy as np
-import time
 
 # import GA
 from pymoo.algorithms.soo.nonconvex.ga import GA
 from pymoo.optimize import minimize
 from pymoo.core.problem import Problem
 
+# import module
+import deploy.deploy as deploy
 pool = ThreadPool(8)
 
 # kubernetes api
@@ -17,7 +18,7 @@ apps_v1 = client.AppsV1Api()
 app_name = "minifab"
 namespace = "minifab"
 image = "minifab:local-latest"
-create_namespace(namespace)
+deploy.create_namespace(namespace)
 class MyProblem(Problem):
 
     def __init__(self, **kwargs):
@@ -37,11 +38,10 @@ class MyProblem(Problem):
         # calculate the function values in a parallelized manner and wait until done
         F = pool.starmap(my_eval, params)
 
-        # Create a deployment object with client-python API.
-
-        pod = create_pod_object(app_name, image)
-        create_pod(pod, namespace)
-        delete_pod(namespace)
+        # Create pods with client-python API.
+        pod = deploy.create_pod_object(app_name, image)
+        deploy.create_pod(pod, namespace)
+        deploy.delete_pod(namespace)
 
         # store the function values and return them.
         out["F"] = np.array(F)
@@ -55,7 +55,7 @@ print('Count:', problem.count)
 # plt res.F
 print(res.F)
 
-delete_namespace(namespace)
+deploy.delete_namespace(namespace)
 
 # Create a deployment object with client-python API.
 # deployment_name = "minifab"
