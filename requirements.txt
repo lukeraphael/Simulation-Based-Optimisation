@@ -1,0 +1,7 @@
+Flask==2.0.2
+kubernetes==24.2.0
+matplotlib==3.4.3
+Mesa==1.0.0
+numpy==1.21.3
+pymoo==0.6.0
+requests_futures==1.0.0
