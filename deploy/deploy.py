@@ -1,5 +1,6 @@
 from kubernetes import client
 import time
+import docker
 
 def create_namespace(namespace):
     # Create namespace
@@ -86,6 +87,16 @@ def delete_pod(namespace):
         print(f"[INFO] all pods completed.")
         break
 
+    client = docker.from_env()
+    container = client.containers.get("onebox-control-plane")
+    cmd = [
+        "bash", 
+        "-c",
+        "cat /mnt/data/dict.json",
+    ]
+    container.exec_run(cmd)
+    print(f"[INFO] {container.exec_run(cmd).output.decode('utf-8')}")
+    
     # Delete pods
     for pod in pods.items:
         print(f"[INFO] deleting pod {pod.metadata.name}")

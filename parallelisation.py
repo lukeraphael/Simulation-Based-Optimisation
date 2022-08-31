@@ -16,9 +16,9 @@ config.load_kube_config()
 apps_v1 = client.AppsV1Api()
 
 app_name = "minifab"
-namespace = "minifab"
+namespace = "default"
 image = "minifab:local-latest"
-deploy.create_namespace(namespace)
+# deploy.create_namespace(namespace)
 class MyProblem(Problem):
 
     def __init__(self, **kwargs):
@@ -47,19 +47,16 @@ class MyProblem(Problem):
         out["F"] = np.array(F)
 
 
-problem = MyProblem()
-res = minimize(problem, GA(), termination=("n_gen", 3), seed=1)
-print('Threads:', res.exec_time)
-print('Count:', problem.count)
+# problem = MyProblem()
+# res = minimize(problem, GA(), termination=("n_gen", 3), seed=1)
+# print('Threads:', res.exec_time)
+# print('Count:', problem.count)
 
-# plt res.F
-print(res.F)
+# # plt res.F
+# print(res.F)
 
-deploy.delete_namespace(namespace)
+app_name = "minifab"
+pod = deploy.create_pod_object(app_name, image)
+deploy.create_pod(pod, namespace) 
 
-# Create a deployment object with client-python API.
-# deployment_name = "minifab"
-
-# deployment = create_pod_object(deployment_name, deployment_name, "minifab:local-latest", 1)
-
-# create_pod(apps_v1, deployment)
+# deploy.delete_namespace(namespace)
