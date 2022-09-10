@@ -21,6 +21,7 @@ def delete_namespace(namespace):
 
     print(f"\n[INFO] namespace {namespace} deleted.\n")
 
+# todo: remove hardcode
 def create_pod_object(app_name, image):
     # Configureate Pod template container
     container = client.V1Container(
@@ -72,7 +73,23 @@ def create_pod(pod, namespace):
 
     print(f"\n[INFO] pod {resp.metadata.name} created.")
 
-def delete_pod(namespace):
+def store_input_file(content: str) -> None:
+    '''
+    store input file to persistent volume
+    content is data in json format
+    path is the path to the file where the data will be stored
+    '''
+    docker_client = docker.from_env()
+    container = docker_client.containers.get("onebox-control-plane")
+    cmd = [
+        "bash", 
+        "-c",
+        f"echo {content} > /mnt/data/file.txt",
+    ]
+    container.exec_run(cmd)
+
+# returns the contents of the output file
+def delete_pod_and_get_results(namespace: str) -> str:
     # wait for minifab pods to complete
     v1 = client.CoreV1Api()
     pods = v1.list_namespaced_pod(namespace=namespace)
@@ -87,15 +104,16 @@ def delete_pod(namespace):
         print(f"[INFO] all pods completed.")
         break
 
-    client = docker.from_env()
-    container = client.containers.get("onebox-control-plane")
+    docker_client = docker.from_env()
+    container = docker_client.containers.get("onebox-control-plane")
     cmd = [
         "bash", 
         "-c",
         "cat /mnt/data/dict.json",
     ]
-    container.exec_run(cmd)
-    print(f"[INFO] {container.exec_run(cmd).output.decode('utf-8')}")
+    
+    res = container.exec_run(cmd).output.decode("utf-8")
+    print(f"[INFO] {res}")
     
     # Delete pods
     for pod in pods.items:
@@ -109,3 +127,5 @@ def delete_pod(namespace):
             print("[INFO] all pods deleted.")
             break
         time.sleep(5)
+
+    return res
