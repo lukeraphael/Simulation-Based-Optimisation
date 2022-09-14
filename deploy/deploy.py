@@ -1,4 +1,3 @@
-from distutils.cmd import Command
 from typing import List
 from kubernetes import client
 import time
@@ -24,7 +23,7 @@ def delete_namespace(namespace):
     print(f"\n[INFO] namespace {namespace} deleted.\n")
 
 # todo: remove hardcode
-def create_pod_object(app_name: str, image: str, command: List[str]) -> client.V1Pod:
+def create_pod_object(app_name: str, image: str, command: List[str], pv: str, pv_claim: str, mount: str) -> client.V1Pod:
     # Configureate Pod template container
     container = client.V1Container(
         name=app_name,
@@ -35,8 +34,8 @@ def create_pod_object(app_name: str, image: str, command: List[str]) -> client.V
             limits={"cpu": "500m", "memory": "500Mi"},
         ),
         volume_mounts=[client.V1VolumeMount(
-            name="task-pv-storage", 
-            mount_path="/minifab"
+            name=pv,
+            mount_path=mount
         )],
     )
 
@@ -54,8 +53,8 @@ def create_pod_object(app_name: str, image: str, command: List[str]) -> client.V
             containers=[container],
             restart_policy="OnFailure",
             volumes=[client.V1Volume(
-                name="task-pv-storage",
-                persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name="task-pv-claim"),
+                name=pv,
+                persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pv_claim),
             )],
         )
     )
@@ -78,14 +77,14 @@ def create_pod(pod, namespace):
 
     print(f"\n[INFO] pod {resp.metadata.name} created.")
 
-def store_input_file(path: str, content: str) -> None:
+def store_input_file(path: str, content: str, docker_name: str) -> None:
     '''
     store input file to persistent volume
     content is data in json format
     path is the path to the file where the data will be stored
     '''
     docker_client = docker.from_env()
-    container = docker_client.containers.get("onebox-control-plane")
+    container = docker_client.containers.get(docker_name)
     cmd = [
         "bash", 
         "-c",
@@ -94,7 +93,7 @@ def store_input_file(path: str, content: str) -> None:
     container.exec_run(cmd)
 
 # returns the contents of the output files as an array
-def delete_pod_and_get_results(namespace: str, output_paths: List[str]) -> List[str]:
+def delete_pod_and_get_results(namespace: str, docker_name: str, output_paths: List[str]) -> List[str]:
     # wait for minifab pods to complete
     v1 = client.CoreV1Api()
     pods = v1.list_namespaced_pod(namespace=namespace)
@@ -110,7 +109,7 @@ def delete_pod_and_get_results(namespace: str, output_paths: List[str]) -> List[
         break
 
     docker_client = docker.from_env()
-    container = docker_client.containers.get("onebox-control-plane")
+    container = docker_client.containers.get(docker_name)
 
     def get_output_file(path: str) -> str:
         cmd = [
