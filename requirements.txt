@@ -1,5 +1,6 @@
 about-time==3.1.1
 alive-progress==2.4.1
+argo-workflows==6.3.0rc2
 arrow==1.2.2
 autograd==1.4
 binaryornot==0.4.4
@@ -27,8 +28,6 @@ jinja2-time==0.2.0
 kiwisolver==1.4.4
 kubernetes==24.2.0
 MarkupSafe==2.1.1
-matplotlib==3.4.3
-Mesa==1.0.0
 networkx==2.8.6
 numpy==1.21.3
 oauthlib==3.2.0

@@ -11,7 +11,6 @@ from pymoo.core.problem import Problem
 
 # import module
 import deploy.deploy as deploy
-pool = ThreadPool(8)
 
 # kubernetes api
 config.load_kube_config()
