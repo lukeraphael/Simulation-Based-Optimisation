@@ -20,58 +20,73 @@ apps_v1 = client.AppsV1Api()
 app_name = "minifab"
 namespace = "default"
 image = "minifab:local-latest1"
+base_path = "/mnt/data/" # set this to the mount path specified in the persistent volume claim
+mount_path = "/minifab/" # set this to the mount path specified in the pod spec
 # deploy.create_namespace(namespace)
 class MyProblem(Problem):
 
     def __init__(self, **kwargs):
-        self.count = 0
+        self.workers = 5
         super().__init__(n_var=3, n_obj=1, n_ieq_constr=0, xl=100, xu=700, **kwargs)
 
     def _evaluate(self, X, out, *args, **kwargs):
-        self.count += 1
-
-        # def my_eval(x):
-        #     return np.sum(x ** 2)
-
         # prepare the parameters for the pool
+        # X: [self.pop_size, self.n_var]] 
         params = [X[k] for k in range(len(X))]
+        print("params: ", len(params))
         F = []
 
-        for val in params:
-            # add inputs as files to the persistent volume
-            print(val)
-            deploy.store_input_file(json.dumps(val.tolist()))
+        start = 0
+        while start < len(params):
+            output_paths = []
+            for i in range(self.workers):
+                if start >= len(params):
+                    break
 
-            # Create pods with client-python API.
-            pod = deploy.create_pod_object(app_name, image)
-            deploy.create_pod(pod, namespace)
-            res_str = deploy.delete_pod_and_get_results(namespace)
+                # store inputs in persistent volume
+                content = json.dumps(params[start].tolist())
+                deploy.store_input_file(f"{base_path}{i}.txt", content)
 
-            # decode json string into dict
-            res = json.loads(res_str)
+                # Create pods with client-python API.
+                output_paths.append(f"{base_path}{i}.json")
 
-            # perform application specific data extraction and store the necessary output into F
-            output = []
-            for i in range(self.n_obj):
-                output.append(res["results"][i]["throughput"])
+                # set input and output paths for files for containers and start them
+                command = ["python3", "./main.py", f"{mount_path}{i}.txt", f"{mount_path}{i}.json"]
+                pod = deploy.create_pod_object(app_name, image, command) 
+                deploy.create_pod(pod, namespace)
+                start += 1
 
-            print(res)
+            # wait for pods to complete and retrieve results
+            results = deploy.delete_pod_and_get_results(namespace, output_paths)
+
+            for res in results:
+                # decode json string into dict
+                res = json.loads(res)
+
+                # perform application specific data extraction and store the necessary output into F
+                # the values that one would like to minimise should be stored in F
+                # to maximise, simply multiply the value by -1
+                output = []
+                for i in range(self.n_obj):
+                    output.append(res["results"][i]["throughput"])
+
+                F.append(output)
 
         # store the function values and return them.
+        # print(f"[INFO] {F}")
         out["F"] = np.array(F)
 
 problem = MyProblem()
-res = minimize(problem, GA(), termination=("n_gen", 3), seed=1)
+res = minimize(problem, GA(pop_size=20), termination=("n_gen", 3), seed=1)
 print('Threads:', res.exec_time)
 print('Count:', problem.count)
 
 # plt res.F
 print(res.F)
 
-# deploy.store_input_file(json.dumps([540, 541, 542]))
-# pod = deploy.create_pod_object(app_name, image)
+# deploy.store_input_file(f"{base_path}{1}.txt", json.dumps([540, 541, 542]))
+# pod = deploy.create_pod_object(app_name, image, "echo hello")
 # deploy.create_pod(pod, namespace) 
-# # sleep for 5 seconds
 # sleep(20)
 # res_str = deploy.delete_pod_and_get_results(namespace)
 

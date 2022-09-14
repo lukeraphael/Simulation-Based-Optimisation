@@ -1,3 +1,5 @@
+from distutils.cmd import Command
+from typing import List
 from kubernetes import client
 import time
 import docker
@@ -22,7 +24,7 @@ def delete_namespace(namespace):
     print(f"\n[INFO] namespace {namespace} deleted.\n")
 
 # todo: remove hardcode
-def create_pod_object(app_name, image):
+def create_pod_object(app_name: str, image: str, command: List[str]) -> client.V1Pod:
     # Configureate Pod template container
     container = client.V1Container(
         name=app_name,
@@ -35,8 +37,11 @@ def create_pod_object(app_name, image):
         volume_mounts=[client.V1VolumeMount(
             name="task-pv-storage", 
             mount_path="/minifab"
-        )]
+        )],
     )
+
+    if command:
+        container.command = command
 
     gen_name = f"{app_name}-"
     # Create and configure a spec section
@@ -73,7 +78,7 @@ def create_pod(pod, namespace):
 
     print(f"\n[INFO] pod {resp.metadata.name} created.")
 
-def store_input_file(content: str) -> None:
+def store_input_file(path: str, content: str) -> None:
     '''
     store input file to persistent volume
     content is data in json format
@@ -84,12 +89,12 @@ def store_input_file(content: str) -> None:
     cmd = [
         "bash", 
         "-c",
-        f"echo {content} > /mnt/data/file.txt",
+        f"echo {content} > {path}",
     ]
     container.exec_run(cmd)
 
-# returns the contents of the output file
-def delete_pod_and_get_results(namespace: str) -> str:
+# returns the contents of the output files as an array
+def delete_pod_and_get_results(namespace: str, output_paths: List[str]) -> List[str]:
     # wait for minifab pods to complete
     v1 = client.CoreV1Api()
     pods = v1.list_namespaced_pod(namespace=namespace)
@@ -106,13 +111,17 @@ def delete_pod_and_get_results(namespace: str) -> str:
 
     docker_client = docker.from_env()
     container = docker_client.containers.get("onebox-control-plane")
-    cmd = [
-        "bash", 
-        "-c",
-        "cat /mnt/data/dict.json",
-    ]
+
+    def get_output_file(path: str) -> str:
+        cmd = [
+            "bash", 
+            "-c",
+            f"cat {path}",
+        ]
+        output = container.exec_run(cmd)
+        return output.output.decode("utf-8")
     
-    res = container.exec_run(cmd).output.decode("utf-8")
+    res = [get_output_file(path) for path in output_paths]
     print(f"[INFO] {res}")
     
     # Delete pods
