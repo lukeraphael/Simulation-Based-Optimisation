@@ -47,10 +47,10 @@ class MyProblem(Problem):
                 content = json.dumps(params[start].tolist())
                 deploy.store_input_file(f"{base_path}{i}.txt", content)
 
-                # Create pods with client-python API.
+                # set output paths for the simulation
                 output_paths.append(f"{base_path}{i}.json")
 
-                # set input and output paths for files for containers and start them
+                # write custom command for the pods. This allows us to input the input and output paths
                 command = ["python3", "./main.py", f"{mount_path}{i}.txt", f"{mount_path}{i}.json"]
                 pod = deploy.create_pod_object(app_name, image, command) 
                 deploy.create_pod(pod, namespace)
