@@ -75,7 +75,7 @@ def create_pod(pod, namespace):
         namespace=namespace
     )
 
-    print(f"\n[INFO] pod {resp.metadata.name} created.")
+    print(f"[INFO] pod {resp.metadata.name} created.")
 
 def store_input_file(path: str, content: str, docker_name: str) -> None:
     '''
@@ -96,17 +96,23 @@ def store_input_file(path: str, content: str, docker_name: str) -> None:
 def delete_pod_and_get_results(namespace: str, docker_name: str, output_paths: List[str]) -> List[str]:
     # wait for minifab pods to complete
     v1 = client.CoreV1Api()
+
+    timeout = 60*10
+    start_time = time.time()
+    finished_pods = set()
     pods = v1.list_namespaced_pod(namespace=namespace)
+    while len(finished_pods) < len(pods.items):
+        if time.time() - start_time > timeout:
+            raise TimeoutError("Timeout waiting for pods to complete")
 
-    while True:
+        time.sleep(5)
         for pod in pods.items:
-            if pod.status.phase != "Succeeded":
-                print(f"[INFO] pod {pod.metadata.name} is not completed yet.")
-                time.sleep(5)
+            if pod.metadata.name in finished_pods:
                 continue
-
-        print(f"[INFO] all pods completed.")
-        break
+            if pod.status.phase == "Succeeded":
+                finished_pods.add(pod.metadata.name)
+                print(f"[INFO] pod {pod.metadata.name} completed.")
+        pods = v1.list_namespaced_pod(namespace=namespace)
 
     docker_client = docker.from_env()
     container = docker_client.containers.get(docker_name)

@@ -18,7 +18,7 @@ apps_v1 = client.AppsV1Api()
 
 app_name = "minifab"
 namespace = "default"
-docker_name = "kind-control-plane"
+docker_name = "onebox-control-plane"
 image = "minifab:local-latest1"
 base_path = "/mnt/data/" # set this to the mount path specified in the persistent volume claim
 mount_path = "/minifab/" # set this to the mount path specified in the pod spec
@@ -83,7 +83,6 @@ class MyProblem(Problem):
 problem = MyProblem()
 res = minimize(problem, GA(pop_size=50), termination=("n_gen", 3), seed=1)
 print('Threads:', res.exec_time)
-print('Count:', problem.count)
 
 # plt res.F
 print(res.F)
