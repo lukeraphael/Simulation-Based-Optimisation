@@ -18,7 +18,7 @@ apps_v1 = client.AppsV1Api()
 
 app_name = "minifab"
 namespace = "default"
-docker_name = "onebox-control-plane"
+docker_name = "minikube"
 image = "minifab:local-latest1"
 base_path = "/mnt/data/" # set this to the mount path specified in the persistent volume claim
 mount_path = "/minifab/" # set this to the mount path specified in the pod spec
@@ -80,12 +80,12 @@ class MyProblem(Problem):
         # print(f"[INFO] {F}")
         out["F"] = np.array(F)
 
-problem = MyProblem()
-res = minimize(problem, GA(pop_size=50), termination=("n_gen", 3), seed=1)
-print('Threads:', res.exec_time)
+# problem = MyProblem()
+# res = minimize(problem, GA(pop_size=50), termination=("n_gen", 3), seed=1)
+# print('Threads:', res.exec_time)
 
-# plt res.F
-print(res.F)
+# # plt res.F
+# print(res.F)
 
 # deploy.store_input_file(f"{base_path}{1}.txt", json.dumps([540, 541, 542]), docker_name)
 # command = ["python3", "./main.py", f"{mount_path}{1}.txt", f"{mount_path}{1}.json"]
@@ -95,3 +95,5 @@ print(res.F)
 # res_str = deploy.delete_pod_and_get_results(namespace)
 
 # deploy.delete_namespace(namespace)
+
+# deploy.read_file_from_k8_pod("argo", "minio-64889fc698-5qj2r", "/data/my-bucket/artifact-passing-wqht6/artifact-passing-wqht6-whalesay-354434790/main.log/xl.meta")
