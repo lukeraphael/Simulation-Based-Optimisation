@@ -11,6 +11,7 @@ from pymoo.core.problem import Problem
 
 # import module
 import deploy.deploy as deploy
+import deploy.argo as argo
 
 # kubernetes api
 config.load_kube_config()
@@ -30,7 +31,7 @@ pv_claim_name = "task-pv-claim"
 class MyProblem(Problem):
 
     def __init__(self, **kwargs):
-        self.workers = 10
+        self.workers = 3
         super().__init__(n_var=3, n_obj=1, n_ieq_constr=0, xl=100, xu=700, **kwargs)
 
     def _evaluate(self, X, out, *args, **kwargs):
@@ -58,6 +59,8 @@ class MyProblem(Problem):
                 command = ["python3", "./main.py", f"{mount_path}{i}.txt", f"{mount_path}{i}.json"]
                 pod = deploy.create_pod_object(app_name, image, command, pv_name, pv_claim_name, mount_path) 
                 deploy.create_pod(pod, namespace)
+
+                # argo.submit_workflow(f"{mount_path}{i}.txt", f"{mount_path}{i}.json")
                 start += 1
 
             # wait for pods to complete and retrieve results
@@ -80,12 +83,12 @@ class MyProblem(Problem):
         # print(f"[INFO] {F}")
         out["F"] = np.array(F)
 
-# problem = MyProblem()
-# res = minimize(problem, GA(pop_size=50), termination=("n_gen", 3), seed=1)
-# print('Threads:', res.exec_time)
+problem = MyProblem()
+res = minimize(problem, GA(pop_size=10), termination=("n_gen", 3), seed=1)
+print('Threads:', res.exec_time)
 
-# # plt res.F
-# print(res.F)
+# plt res.F
+print(res.F)
 
 # deploy.store_input_file(f"{base_path}{1}.txt", json.dumps([540, 541, 542]), docker_name)
 # command = ["python3", "./main.py", f"{mount_path}{1}.txt", f"{mount_path}{1}.json"]
@@ -94,6 +97,8 @@ class MyProblem(Problem):
 # sleep(20)
 # res_str = deploy.delete_pod_and_get_results(namespace)
 
-# deploy.delete_namespace(namespace)
+# deploy.delete_pods(namespace)
+# argo.submit_workflow(f"{mount_path}{1}.txt", f"{mount_path}{12}.json")
+# argo.submit_yaml()
 
 # deploy.read_file_from_k8_pod("argo", "minio-64889fc698-5qj2r", "/data/my-bucket/artifact-passing-wqht6/artifact-passing-wqht6-whalesay-354434790/main.log/xl.meta")

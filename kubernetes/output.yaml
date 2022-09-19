@@ -10,36 +10,24 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: volumes-existing-
+  generateName: simulate-minifab-example-
 spec:
-  entrypoint: volumes-existing-example
+  entrypoint: simulate
   volumes:
   - name: workdir
     persistentVolumeClaim:
       claimName: argo-pv-claim
 
   templates:
-  - name: volumes-existing-example
+  - name: simulate
     steps:
-    - - name: generate
-        template: append-to-accesslog
-    - - name: print
-        template: print-accesslog
+    - - name: run-minifab
+        template: minifab
 
-  - name: append-to-accesslog
+  - name: minifab
     container:
-      image: alpine:latest
-      command: [sh, -c]
-      args: ["echo accessed at: $(date) | tee -a /mnt/vol/accesslog"]
+      image: lukeraphael/minifab
+      command: [python3, ./main.py, /minifab/0.txt, /minifab/11.json]
       volumeMounts:
       - name: workdir
-        mountPath: /mnt/vol
-
-  - name: print-accesslog
-    container:
-      image: alpine:latest
-      command: [sh, -c]
-      args: ["echo 'Volume access log:'; cat /mnt/vol/accesslog"]
-      volumeMounts:
-      - name: workdir
-        mountPath: /mnt/vol
+        mountPath: /minifab/

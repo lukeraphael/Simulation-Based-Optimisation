@@ -104,7 +104,7 @@ def delete_pod_and_get_results(namespace: str, docker_name: str, output_paths: L
     start_time = time.time()
     finished_pods = set()
     pods = v1.list_namespaced_pod(namespace=namespace)
-    while len(finished_pods) < len(pods.items):
+    while len(finished_pods) < len(output_paths):
         if time.time() - start_time > timeout:
             raise TimeoutError("Timeout waiting for pods to complete")
 
@@ -131,8 +131,22 @@ def delete_pod_and_get_results(namespace: str, docker_name: str, output_paths: L
     
     res = [get_output_file(path) for path in output_paths]
     print(f"[INFO] {res}")
-    
-    # Delete pods
+
+    delete_pods(namespace)
+    # delete_pods_prefix(namespace, "minifab")
+    return res
+
+def delete_pods_prefix(namespace: str, prefix: str) -> None:
+    v1 = client.CoreV1Api()
+    pods = v1.list_namespaced_pod(namespace=namespace)
+    for pod in pods.items:
+        if pod.metadata.name.startswith(prefix):
+            print(f"[INFO] deleting pod {pod.metadata.name}")
+            v1.delete_namespaced_pod(name=pod.metadata.name, namespace=namespace)
+
+def delete_pods(namespace: str) -> None:
+    v1 = client.CoreV1Api()
+    pods = v1.list_namespaced_pod(namespace=namespace)
     for pod in pods.items:
         print(f"[INFO] deleting pod {pod.metadata.name}")
         v1.delete_namespaced_pod(name=pod.metadata.name, namespace=namespace)
@@ -144,8 +158,6 @@ def delete_pod_and_get_results(namespace: str, docker_name: str, output_paths: L
             print("[INFO] all pods deleted.")
             break
         time.sleep(5)
-
-    return res
 
 def read_file_from_k8_pod(namespace: str, pod_name: str, path: str) -> str:
     v1 = client.CoreV1Api()
