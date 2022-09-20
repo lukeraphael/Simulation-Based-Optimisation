@@ -16,33 +16,34 @@ from argo_workflows.model.io_argoproj_workflow_v1alpha1_workflow_spec import (
     IoArgoprojWorkflowV1alpha1WorkflowSpec,
 )
 from argo_workflows.model.object_meta import ObjectMeta
+from typing import List
 
 configuration = argo_workflows.Configuration(host="https://127.0.0.1:2746")
 configuration.verify_ssl = False
 
-def submit_workflow(input_file: str, output_file: str) -> None:
+def submit_workflow(app_name: str, pv: str, pv_claim: str, image: str, mount_path: str, command: List[str], namespace: str) -> None:
 
     manifest = IoArgoprojWorkflowV1alpha1Workflow(
-        metadata=ObjectMeta(generate_name='minifab-argo-test'),
+        metadata=ObjectMeta(generate_name=f"{app_name}-"),
         spec=IoArgoprojWorkflowV1alpha1WorkflowSpec(
-            entrypoint='whalesay',
+            entrypoint='entrypoint',
             volumes= [
                 Volume(
-                    name='argo-pv-volume',
+                    name=pv,
                     persistent_volume_claim=PersistentVolumeClaimVolumeSource(
-                        claim_name='argo-pv-claim'),
+                        claim_name=pv_claim),
                     )
             ],
             templates=[
                 IoArgoprojWorkflowV1alpha1Template(
-                    name='whalesay',
+                    name='entrypoint',
                     container=Container(
-                        image='lukeraphael/minifab', 
-                        command=['python3', './main.py', input_file, output_file], 
+                        image=image, 
+                        command=command, 
                         volume_mounts=[
                             VolumeMount(
-                                name='argo-pv-volume',
-                                mount_path='/minifab/',
+                                name=pv,
+                                mount_path=mount_path,
                             )
                         ]                       
                     ),
@@ -55,7 +56,7 @@ def submit_workflow(input_file: str, output_file: str) -> None:
     api_instance = workflow_service_api.WorkflowServiceApi(api_client)
 
     api_instance.create_workflow(
-        namespace='argo',
+        namespace=namespace,
         body=IoArgoprojWorkflowV1alpha1WorkflowCreateRequest(workflow=manifest),
         _check_return_type=False)
  
