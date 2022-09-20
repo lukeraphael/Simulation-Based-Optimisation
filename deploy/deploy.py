@@ -96,7 +96,7 @@ def store_input_file(path: str, content: str, docker_name: str) -> None:
     container.exec_run(cmd)
 
 # returns the contents of the output files as an array
-def delete_pod_and_get_results(namespace: str, docker_name: str, output_paths: List[str]) -> List[str]:
+def delete_pods_and_get_results(namespace: str, docker_name: str, output_paths: List[str]) -> List[str]:
     # wait for minifab pods to complete
     v1 = client.CoreV1Api()
 
@@ -132,8 +132,8 @@ def delete_pod_and_get_results(namespace: str, docker_name: str, output_paths: L
     res = [get_output_file(path) for path in output_paths]
     print(f"[INFO] {res}")
 
-    delete_pods(namespace)
-    # delete_pods_prefix(namespace, "minifab")
+    # delete_pods(namespace)
+    delete_pods_prefix(namespace, "minifab")
     return res
 
 def delete_pods_prefix(namespace: str, prefix: str) -> None:
