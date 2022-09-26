@@ -16,14 +16,14 @@ def create_namespace(namespace):
     )
     resp = api.create_namespace(body=body)
 
-    print(f"[INFO] namespace {resp.metadata.name} created.")
+    # print(f"[INFO] namespace {resp.metadata.name} created.")
 
 def delete_namespace(namespace):
     # Delete namespace
     api = client.CoreV1Api()
     api.delete_namespace(name=namespace)
 
-    print(f"\n[INFO] namespace {namespace} deleted.\n")
+    # print(f"\n[INFO] namespace {namespace} deleted.\n")
 
 # todo: remove hardcode
 def create_pod_object(app_name: str, image: str, command: List[str], pv: str, pv_claim: str, mount: str) -> client.V1Pod:
@@ -78,7 +78,7 @@ def create_pod(pod, namespace):
         namespace=namespace
     )
 
-    print(f"[INFO] pod {resp.metadata.name} created.")
+    # print(f"[INFO] pod {resp.metadata.name} created.")
 
 def store_input_file(path: str, content: str, docker_name: str) -> None:
     '''
@@ -114,7 +114,7 @@ def delete_pods_and_get_results(namespace: str, docker_name: str, output_paths: 
                 continue
             if pod.status.phase == "Succeeded":
                 finished_pods.add(pod.metadata.name)
-                print(f"[INFO] pod {pod.metadata.name} completed.")
+                # print(f"[INFO] pod {pod.metadata.name} completed.")
         pods = v1.list_namespaced_pod(namespace=namespace)
 
     docker_client = docker.from_env()
@@ -130,7 +130,7 @@ def delete_pods_and_get_results(namespace: str, docker_name: str, output_paths: 
         return output.output.decode("utf-8")
     
     res = [get_output_file(path) for path in output_paths]
-    print(f"[INFO] {res}")
+    # print(f"[INFO] {res}")
 
     # delete_pods(namespace)
     delete_pods_prefix(namespace, "minifab")
@@ -141,21 +141,26 @@ def delete_pods_prefix(namespace: str, prefix: str) -> None:
     pods = v1.list_namespaced_pod(namespace=namespace)
     for pod in pods.items:
         if pod.metadata.name.startswith(prefix):
-            print(f"[INFO] deleting pod {pod.metadata.name}")
-            v1.delete_namespaced_pod(name=pod.metadata.name, namespace=namespace)
+            try:
+                v1.delete_namespaced_pod(name=pod.metadata.name, namespace=namespace)
+            except Exception as e:
+                pass
+                print(f"[ERROR] {e}")
+            # print(f"[INFO] deleting pod {pod.metadata.name}")
+            # v1.delete_namespaced_pod(name=pod.metadata.name, namespace=namespace)
 
 def delete_pods(namespace: str) -> None:
     v1 = client.CoreV1Api()
     pods = v1.list_namespaced_pod(namespace=namespace)
     for pod in pods.items:
-        print(f"[INFO] deleting pod {pod.metadata.name}")
+        # print(f"[INFO] deleting pod {pod.metadata.name}")
         v1.delete_namespaced_pod(name=pod.metadata.name, namespace=namespace)
 
     # wait for the pods to be deleted
     while True:
         pods = v1.list_namespaced_pod(namespace=namespace)
         if len(pods.items) == 0:
-            print("[INFO] all pods deleted.")
+            # print("[INFO] all pods deleted.")
             break
         time.sleep(5)
 
@@ -179,10 +184,10 @@ def read_file_from_k8_pod(namespace: str, pod_name: str, path: str) -> str:
     while resp.is_open():
         resp.update(timeout=1)
         if resp.peek_stdout():
-            print("STDOUT: %s" % resp.read_stdout())
+            # print("STDOUT: %s" % resp.read_stdout())
             return resp.read_stdout()
         if resp.peek_stderr():
-            print("Error: %s" % resp.read_stderr())
+            # print("Error: %s" % resp.read_stderr())
             os.exit(1)
 
         if command:
