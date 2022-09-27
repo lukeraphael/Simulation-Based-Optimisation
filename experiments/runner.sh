@@ -21,23 +21,16 @@ inputs="argo_input.csv"
 outputs="argo_output.csv"
 
 # activate the virtual environment
-. ./venv/bin/activate
+. ../venv/bin/activate
 
 # parse input file
 while IFS=, read -r workers generations population
 do
     echo "Running with $workers workers, $generations generations and $population population size per generation"
     # run the application
-    time=$(python3 ./parallelisation.py --workers $workers --n_gen $generations --pop_size $population)
+    time=$(python3 ../parallelisation.py --workers $workers --n_gen $generations --pop_size $population --choice kubernetes)
     # write the results to the output file
     echo "$workers,$generations,$population,$time" >> $outputs
 done < $inputs
 
 deactivate
-
-git clone https://github.com/brendangregg/FlameGraph  # or download it from github
-cd FlameGraph
-perf record -F 99 -a -g -- sleep 60
-perf script | ./stackcollapse-perf.pl > out.perf-folded
-./flamegraph.pl out.perf-folded > perf.svg
-firefox perf.svg  # or chrome, etc.

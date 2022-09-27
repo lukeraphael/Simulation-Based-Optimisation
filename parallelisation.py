@@ -5,6 +5,7 @@ import numpy as np
 from pymoo.algorithms.soo.nonconvex.ga import GA
 from pymoo.optimize import minimize
 from pymoo.core.problem import Problem
+from pymoo.termination.default import DefaultSingleObjectiveTermination
 import urllib3
 
 # import module
@@ -35,7 +36,12 @@ args = argparse.ArgumentParser()
 args.add_argument("--workers", type=int, required=True)
 args.add_argument("--n_gen", type=int, required=True)
 args.add_argument("--pop_size", type=int, required=True)
+args.add_argument("--choice", type=str, required=True, choices=["kubernetes", "argo"], default="argo")
 parsed_args = args.parse_args()
+
+# check that choice is valid
+if parsed_args.choice not in {"kubernetes", "argo"}:
+    raise ValueError("Choice must be either 'kubernetes' or 'argo'")
 
 # deploy.create_namespace(namespace)
 class MyProblem(Problem):
@@ -67,10 +73,13 @@ class MyProblem(Problem):
 
                 # write custom command for the pods. This allows us to input the input and output paths
                 command = ["python3", "./main.py", f"{mount_path}{i}.txt", f"{mount_path}{i}.json"]
-                # pod = deploy.create_pod_object(app_name, image, command, pv_name, pv_claim_name, mount_path) 
-                # deploy.create_pod(pod, namespace)
 
-                argo.submit_workflow(app_name, argo_pv_name,argo_pv_claim, argo_image, mount_path, command, "argo")
+                # create pod
+                if parsed_args.choice == "kubernetes":
+                    pod = deploy.create_pod(app_name, image, command, pv_name, pv_claim_name)
+                    deploy.create_pod(pod, namespace)
+                elif parsed_args.choice == "argo":
+                    argo.submit_workflow(app_name, argo_pv_name,argo_pv_claim, argo_image, mount_path, command, "argo")
                 start += 1
 
             # wait for pods to complete and retrieve results
@@ -95,7 +104,22 @@ class MyProblem(Problem):
 
 
 problem = MyProblem(workers=parsed_args.workers)
-res = minimize(problem, GA(pop_size=parsed_args.pop_size), termination=("n_gen", parsed_args.n_gen), seed=1)
+termination = DefaultSingleObjectiveTermination(
+    xtol=1e-8,
+    cvtol=1e-6,
+    ftol=1e-6,
+    period=20,
+    n_max_gen=parsed_args.n_gen,
+    n_max_evals=100000
+)
+
+res = minimize(problem, 
+    GA(pop_size=parsed_args.pop_size), 
+    termination=termination, 
+    seed=1,
+    verbose=True)
+
+print("Generations: ", res.algorithm.n_gen)
 print(res.exec_time)
 
 # plt res.F
