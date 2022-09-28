@@ -1,0 +1,33 @@
+# This example demonstrates the ability for a workflow to attach 
+# to a pre-created, existing volume for use throughout a workflow.
+# A PVC named 'my-existing-volume' is assumed to exist. Create it
+# using `kubectl create -f examples/testvolume.yaml`.
+# 
+# The first step will append the current timestamp to an access log. 
+# The second step will dump the contents of the access log. Submit
+# this workflow multiple times to see the access log grow after each
+# submission.
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: simulate-minifab-example-
+spec:
+  entrypoint: simulate
+  volumes:
+  - name: workdir
+    persistentVolumeClaim:
+      claimName: argo-pv-claim
+
+  templates:
+  - name: simulate
+    steps:
+    - - name: run-minifab
+        template: minifab
+
+  - name: minifab
+    container:
+      image: lukeraphael/minifab
+      command: [python3, ./main.py, /minifab/0.txt, /minifab/11.json]
+      volumeMounts:
+      - name: workdir
+        mountPath: /minifab/
