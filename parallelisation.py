@@ -3,9 +3,10 @@ import json
 from kubernetes import client, config
 import numpy as np
 from pymoo.algorithms.soo.nonconvex.ga import GA
+from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.optimize import minimize
 from pymoo.core.problem import Problem
-from pymoo.termination.default import DefaultSingleObjectiveTermination
+from pymoo.termination.default import DefaultMultiObjectiveTermination
 import urllib3
 
 # import module
@@ -48,7 +49,7 @@ class MyProblem(Problem):
 
     def __init__(self, **kwargs):
         self.workers = kwargs["workers"]
-        super().__init__(n_var=3, n_obj=1, n_ieq_constr=0, xl=100, xu=700, **kwargs)
+        super().__init__(n_var=3, n_obj=3, n_ieq_constr=0, xl=100, xu=700, **kwargs)
 
     def _evaluate(self, X, out, *args, **kwargs):
         # prepare the parameters for the pool
@@ -76,7 +77,7 @@ class MyProblem(Problem):
 
                 # create pod
                 if parsed_args.choice == "kubernetes":
-                    pod = deploy.create_pod(app_name, image, command, pv_name, pv_claim_name)
+                    pod = deploy.create_pod_object(app_name, image, command, argo_pv_name, argo_pv_claim, mount_path)
                     deploy.create_pod(pod, namespace)
                 elif parsed_args.choice == "argo":
                     argo.submit_workflow(app_name, argo_pv_name,argo_pv_claim, argo_image, mount_path, command, "argo")
@@ -94,7 +95,7 @@ class MyProblem(Problem):
                 # to maximise, simply multiply the value by -1
                 output = []
                 for i in range(self.n_obj):
-                    output.append(res["results"][i]["throughput"])
+                    output.append(-res["results"][i]["throughput"])
 
                 F.append(output)
 
@@ -104,36 +105,20 @@ class MyProblem(Problem):
 
 
 problem = MyProblem(workers=parsed_args.workers)
-termination = DefaultSingleObjectiveTermination(
+
+multi_term = DefaultMultiObjectiveTermination(
     xtol=1e-8,
     cvtol=1e-6,
-    ftol=1e-6,
-    period=20,
+    ftol=0.0025,
+    period=30,
     n_max_gen=parsed_args.n_gen,
     n_max_evals=100000
 )
 
 res = minimize(problem, 
-    GA(pop_size=parsed_args.pop_size), 
-    termination=termination, 
+    NSGA2(pop_size=parsed_args.pop_size), 
+    termination=multi_term,
     seed=1,
-    verbose=True)
+    verbose=False)
 
-print("Generations: ", res.algorithm.n_gen)
 print(res.exec_time)
-
-# plt res.F
-# print(res.F)
-
-# deploy.store_input_file(f"{base_path}{1}.txt", json.dumps([540, 541, 542]), docker_name)
-# command = ["python3", "./main.py", f"{mount_path}{1}.txt", f"{mount_path}{1}.json"]
-# pod = deploy.create_pod_object(app_name, image, command, pv_name, pv_claim_name, mount_path)
-# deploy.create_pod(pod, namespace) 
-# sleep(20)
-# res_str = deploy.delete_pod_and_get_results(namespace)
-
-# deploy.delete_pods(namespace)
-# argo.submit_workflow(f"{mount_path}{1}.txt", f"{mount_path}{12}.json")
-# argo.submit_yaml()
-
-# deploy.read_file_from_k8_pod("argo", "minio-64889fc698-5qj2r", "/data/my-bucket/artifact-passing-wqht6/artifact-passing-wqht6-whalesay-354434790/main.log/xl.meta")
