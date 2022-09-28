@@ -17,8 +17,8 @@
 # The output file is named output.csv
 
 
-inputs="argo_input.csv"
-outputs="argo_output.csv"
+inputs="kubernetes_input.csv"
+outputs="kubernetes_output.csv"
 
 # activate the virtual environment
 . ../venv/bin/activate
