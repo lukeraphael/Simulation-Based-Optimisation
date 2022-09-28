@@ -31,7 +31,7 @@ def create_pod_object(app_name: str, image: str, command: List[str], pv: str, pv
     container = client.V1Container(
         name=app_name,
         image=image,
-        image_pull_policy="Never",
+        image_pull_policy="IfNotPresent",
         resources=client.V1ResourceRequirements(
             requests={"cpu": "100m", "memory": "200Mi"},
             limits={"cpu": "500m", "memory": "500Mi"},
