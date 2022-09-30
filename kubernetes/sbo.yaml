@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sbo
+spec:
+  volumes:
+    - name: argo-pv-volume
+      persistentVolumeClaim:
+        claimName: argo-pv-claim
+  containers:
+    - name: sbo-container
+      image: sbo:local-latest
+      volumeMounts:
+        - mountPath: "/minifab/"
+          name: argo-pv-volume
