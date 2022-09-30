@@ -14,7 +14,8 @@ import deploy.deploy as deploy
 import deploy.argo as argo
 
 # kubernetes api
-config.load_kube_config("/home/luke/.kube/config")
+# config.load_kube_config()
+config.load_incluster_config()
 apps_v1 = client.AppsV1Api()
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -67,7 +68,7 @@ class MyProblem(Problem):
 
                 # store inputs in persistent volume
                 content = json.dumps(params[start].tolist())
-                deploy.store_input_file(f"{base_path}{i}.txt", content, docker_name)
+                deploy.store_input_file(f"{mount_path}{i}.txt", content, docker_name)
 
                 # set output paths for the simulation
                 output_paths.append(f"{base_path}{i}.json")

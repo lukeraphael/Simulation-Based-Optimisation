@@ -86,14 +86,20 @@ def store_input_file(path: str, content: str, docker_name: str) -> None:
     content is data in json format
     path is the path to the file where the data will be stored
     '''
-    docker_client = docker.from_env()
-    container = docker_client.containers.get(docker_name)
-    cmd = [
-        "bash", 
-        "-c",
-        f"echo {content} > {path}",
-    ]
-    container.exec_run(cmd)
+    # docker_client = docker.from_env()
+    # container = docker_client.containers.get(docker_name)
+    # cmd = [
+    #     "bash", 
+    #     "-c",
+    #     f"echo {content} > {path}",
+    # ]
+    # container.exec_run(cmd)
+    
+    # save file to persistent volume, if it doesn't exist, create it
+    if not os.path.exists(path):
+        open(path, "w").close()
+    with open(path, "w") as f:
+        f.write(content)
 
 # returns the contents of the output files as an array
 def delete_pods_and_get_results(namespace: str, docker_name: str, output_paths: List[str]) -> List[str]:
@@ -121,13 +127,14 @@ def delete_pods_and_get_results(namespace: str, docker_name: str, output_paths: 
     container = docker_client.containers.get(docker_name)
 
     def get_output_file(path: str) -> str:
-        cmd = [
-            "bash", 
-            "-c",
-            f"cat {path}",
-        ]
-        output = container.exec_run(cmd)
-        return output.output.decode("utf-8")
+        # cmd = [
+        #     "bash", 
+        #     "-c",
+        #     f"cat {path}",
+        # ]
+        # output = container.exec_run(cmd)
+        # return output.output.decode("utf-8")
+        return open(path, "r").read()
     
     res = [get_output_file(path) for path in output_paths]
     # print(f"[INFO] {res}")
