@@ -123,8 +123,8 @@ def delete_pods_and_get_results(namespace: str, docker_name: str, output_paths: 
                 # print(f"[INFO] pod {pod.metadata.name} completed.")
         pods = v1.list_namespaced_pod(namespace=namespace)
 
-    docker_client = docker.from_env()
-    container = docker_client.containers.get(docker_name)
+    # docker_client = docker.from_env()
+    # container = docker_client.containers.get(docker_name)
 
     def get_output_file(path: str) -> str:
         # cmd = [
