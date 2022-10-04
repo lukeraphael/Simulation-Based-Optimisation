@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: waferfab-simulation-
+  labels:
+    workflows.argoproj.io/archive-strategy: "false"
+spec:
+  entrypoint: simulation
+  templates:
+  - name: simulation
+    inputs:
+      parameters:
+      - name: seed
+        value: 12345
+      artifacts:
+      - name: simulation-model
+        path: /tmp/input
+        s3:
+          endpoint: s3proxy
+          insecure: true
+          bucket: argo-workflow
+          key: Semantec_bench/input.tar.gz
+          accessKeySecret:
+            name: azure-storage-cred
+            key: accesskey
+          secretKeySecret:
+            name: azure-storage-cred
+            key: secretkey
+    outputs:
+      artifacts:
+      - name: simulation-output
+        path: /mnt/output
+    container:
+      image: cpps13.azurecr.io/simulator/masim:latest
+      command: [sh, -c]
+      args: ["/usr/local/masim/masim -i /tmp/input -o /mnt/output -s {{inputs.parameters.seed}}"]
+      volumeMounts:
+        - name: out
+          mountPath: /mnt/output
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+    volumes:
+      - name: out
+        emptyDir: { }
+    nodeSelector:
+      kubernetes.io/os: linux
+    tolerations:
+    - key: "kubernetes.azure.com/scalesetpriority"
+      operator: "Equal"
+      value: "spot"
+      effect: "NoSchedule"
