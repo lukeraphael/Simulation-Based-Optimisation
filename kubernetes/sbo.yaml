@@ -10,7 +10,9 @@ spec:
         claimName: argo-pv-claim
   containers:
     - name: sbo-container
-      image: sbo:local-latest
+      image: lukeraphael/sbo
+      imagePullPolicy: IfNotPresent
+      command: ["python3", "parallelisation.py", "--n_gen", "10", "--workers", "10", "--pop_size", "80", "--choice", "kubernetes"]
       volumeMounts:
         - mountPath: "/minifab/"
           name: argo-pv-volume
