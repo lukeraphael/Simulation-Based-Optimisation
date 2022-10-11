@@ -21,7 +21,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 app_name = "minifab"
 namespace = "argo"
-docker_name = "minikube"
+docker_name = "kind-control-plane"
 image = "lukeraphael/minifab"
 base_path = "/mnt/data/" # set this to the mount path specified in the persistent volume
 mount_path = "/minifab/" # set this to the mount path specified in the pod spec
@@ -29,7 +29,8 @@ mount_path = "/minifab/" # set this to the mount path specified in the pod spec
 pv_name = "task-pv-volume"
 pv_claim_name = "task-pv-claim"
 
-argo_pv_name = "argo-pv-volume"
+argo_pv_name = "pvc-dbe7ddab-147d-4517-ba65-5182c101cf63"
+# argo_pv_name = "argo-pv-volume"
 argo_pv_claim = "argo-pv-claim"
 argo_image = "lukeraphael/minifab"
 
@@ -71,7 +72,7 @@ class MyProblem(Problem):
                 deploy.store_input_file(f"{mount_path}{i}.txt", content, docker_name)
 
                 # set output paths for the simulation
-                output_paths.append(f"{base_path}{i}.json")
+                output_paths.append(f"{mount_path}{i}.json")
 
                 # write custom command for the pods. This allows us to input the input and output paths
                 command = ["python3", "./main.py", f"{mount_path}{i}.txt", f"{mount_path}{i}.json"]
