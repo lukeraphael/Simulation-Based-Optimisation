@@ -6,7 +6,7 @@ import time
 import docker
 import os
 
-def create_namespace(namespace):
+def create_namespace(namespace: str) -> None:
     # Create namespace
     api = client.CoreV1Api()
     body = client.V1Namespace(
@@ -18,7 +18,7 @@ def create_namespace(namespace):
 
     # print(f"[INFO] namespace {resp.metadata.name} created.")
 
-def delete_namespace(namespace):
+def delete_namespace(namespace: str) -> None:
     # Delete namespace
     api = client.CoreV1Api()
     api.delete_namespace(name=namespace)
@@ -59,7 +59,26 @@ def create_pod_object(app_name: str, image: str, command: List[str], pv: str, pv
                 name=pv,
                 persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pv_claim),
             )],
-        )
+            tolerations=[client.V1Toleration(
+                effect="NoSchedule", 
+                key="kubernetes.azure.com/scalesetpriority",
+                operator="Equal",
+                value="spot",
+            )],
+            affinity=client.V1Affinity(
+                node_affinity=client.V1NodeAffinity(
+                    required_during_scheduling_ignored_during_execution=client.V1NodeSelector(
+                        node_selector_terms=[client.V1NodeSelectorTerm(
+                            match_expressions=[client.V1NodeSelectorRequirement(
+                                key="kubernetes.azure.com/scalesetpriority",
+                                operator="In",
+                                values=["spot"],
+                            )]
+                        )]
+                    )
+                )        
+            )
+        ) 
     )
 
     # return pod object
@@ -201,3 +220,8 @@ def read_file_from_k8_pod(namespace: str, pod_name: str, path: str) -> str:
             c = command.pop(0)
             # print("Running command... %s\n" % c)
             resp.write_stdin(c)
+
+def get_service_port(namespace: str, service_name: str) -> int:
+    v1 = client.CoreV1Api()
+    resp = v1.read_namespaced_service(name=service_name, namespace=namespace)
+    return resp.spec.ports[0].node_port
