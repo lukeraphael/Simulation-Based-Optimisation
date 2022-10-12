@@ -1,4 +1,3 @@
-from calendar import c
 from typing import List
 from kubernetes import client
 from kubernetes.stream import stream
@@ -96,8 +95,7 @@ def create_pod(pod, namespace):
         body=pod, 
         namespace=namespace
     )
-
-    # print(f"[INFO] pod {resp.metadata.name} created.")
+    return resp
 
 def store_input_file(path: str, content: str, docker_name: str) -> None:
     '''
