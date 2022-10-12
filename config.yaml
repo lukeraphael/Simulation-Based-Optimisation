@@ -1,0 +1,44 @@
+meta:
+  runner: kubernetes              # kubernetes or argo
+  server_standalone: server       # server or standalone simulation
+  spot: true                      # set to true to deploy on spot instances
+
+storage:
+  persistentVolume:
+    name: argo-pv-volume
+  persistentVolumeClaim:
+    name: argo-pv-claim
+  mountPath: /minifab/
+
+simulation:
+  image:
+    repository: lukeraphael/sbo
+    tag: latest
+    pullPolicy: IfNotPresent
+  parameters:
+    workers: 10
+    generations: 100
+    population: 100 
+  server:
+    port: 30080                   # nodeport to expose the server on
+  standalone:
+    input_path: /minifab/input    # path to input files 
+    output_path: /minifab/output  # path to output files 
+
+spot:
+  - nodeSelector: 
+      kubernetes.io/os: linux
+  - tolerations:
+    - key: "kubernetes.azure.com/scalesetpriority"
+      operator: "Equal"
+      value: "spot"
+      effect: "NoSchedule"
+  - affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: "kubernetes.azure.com/scalesetpriority"
+              operator: In
+              values:
+              - "spot"
