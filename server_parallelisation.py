@@ -1,21 +1,15 @@
 
 import argparse
 import json
-from kubernetes import client, config
 import numpy as np
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.optimize import minimize
 from pymoo.core.problem import Problem
 from pymoo.termination.default import DefaultMultiObjectiveTermination
-import urllib3
 from requests_futures.sessions import FuturesSession
 
-# import module
-import deploy.deploy as deploy
-import deploy.argo as argo
-
 # kubernetes api
-config.load_kube_config("~/.kube/config")
+# config.load_kube_config("~/.kube/config")
 # config.load_incluster_config()
 # apps_v1 = client.AppsV1Api()
 # urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -27,6 +21,8 @@ args.add_argument("--workers", type=int, required=True)
 args.add_argument("--n_gen", type=int, required=True)
 args.add_argument("--pop_size", type=int, required=True)
 args.add_argument("--choice", type=str, required=True, choices=["kubernetes", "argo"], default="argo")
+args.add_argument("--port", type=int, required=True)
+args.add_argument("--host", type=str, required=True)
 parsed_args = args.parse_args()
 
 # check that choice is valid
@@ -54,7 +50,8 @@ class MyProblem(Problem):
             }
 
             if parsed_args.choice == "kubernetes":
-                futures.append(session.post("http://localhost:30001/simulate", json=payload))
+                endpoint = f"http://{parsed_args.host}:{parsed_args.port}/simulate"
+                futures.append(session.post(endpoint, json=payload))
                 
             elif parsed_args.choice == "argo":
                 # argo.submit_workflow(app_name, argo_pv_name,argo_pv_claim, argo_image, mount_path, command, "argo")
