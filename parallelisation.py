@@ -7,6 +7,7 @@ from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.optimize import minimize
 from pymoo.core.problem import Problem
 from pymoo.termination.default import DefaultMultiObjectiveTermination
+from requests_futures.sessions import FuturesSession
 import urllib3
 
 # import module
@@ -40,11 +41,16 @@ args.add_argument("--workers", type=int, required=True)
 args.add_argument("--n_gen", type=int, required=True)
 args.add_argument("--pop_size", type=int, required=True)
 args.add_argument("--choice", type=str, required=True, choices=["kubernetes", "argo"], default="argo")
+args.add_argument("--token", type=str, required=False)
 parsed_args = args.parse_args()
 
 # check that choice is valid
 if parsed_args.choice not in {"kubernetes", "argo"}:
     raise ValueError("Choice must be either 'kubernetes' or 'argo'")
+
+session = None
+if parsed_args.choice == "argo":
+    session = FuturesSession()
 
 # deploy.create_namespace(namespace)
 class MyProblem(Problem):
@@ -82,7 +88,7 @@ class MyProblem(Problem):
                     pod = deploy.create_pod_object(app_name, image, command, argo_pv_name, argo_pv_claim, mount_path)
                     deploy.create_pod(pod, namespace)
                 elif parsed_args.choice == "argo":
-                    argo.submit_workflow(app_name, argo_pv_name,argo_pv_claim, argo_image, mount_path, command, "argo")
+                    argo.submit_json(app_name, argo_pv_name,argo_pv_claim, argo_image, mount_path, command, "argo", parsed_args.token, session)
                 start += 1
 
             # wait for pods to complete and retrieve results
