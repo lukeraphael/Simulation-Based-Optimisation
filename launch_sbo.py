@@ -2,9 +2,11 @@ import deploy.deploy as deploy
 from kubernetes import client, config
 import time
 import os
+from decouple import config as env_config
+
 # generations, workers, population size
 params = [
-    # [1,1,10],
+    [1,1,10],
     # [20, 10, 100],
     # [40, 10, 100],
     # [60, 10, 100], 
@@ -21,23 +23,23 @@ params = [
     # [50, 10, 120],
     # [50, 10, 140],
     # [50, 10, 160],
-    # server vs standalone
-    # [10, 20, 20],
-    # [20, 20, 20],
-    # [30, 20, 20],
-    # [40, 20, 20],
-    [50, 20, 20],
-    ]    
+    # [10, 45, 50],
+    # [10, 35, 50],
+    # [10, 25, 50],
+    # [10, 15, 50],
+    # [10, 5, 50],
+]    
 
 
 config.load_kube_config()
 v1 = client.CoreV1Api()
 namespace = "argo"
-server_standalone = "standalone"
-image = "lukeraphael/sbo"
+server_standalone = "server"
+image = "lukeraphael/sbo:server"
 app_name = "sbo"
-output_path = "experiments/argo_standalone_kubernetes_output.csv"
-token = "Bearer 2764ff3c24659a11cf79a3fb128221abcf11ff4f2ab0a58620793bc27689d7513d9dd12ee3e5f49f836a52ff3c3c1197b6d5001c7434222f300ad091986d2b05"
+output_path = "experiments/argo_server_kubernetes_output.csv"
+
+token = env_config('TOKEN')
 
 for gen, workers, pop_size in params:
     command = ["python3", "parallelisation.py", 
@@ -49,13 +51,22 @@ for gen, workers, pop_size in params:
     ]
     if server_standalone == "server":
         image = "lukeraphael/sbo:server"
-        command[1] = "server_parallelisation.py"
-        command.append("--host")
-        command.append("10.0.22.243")
-        command.append("--port")
-        command.append("5001")
+        
+        command = ["python3", "server_parallelisation.py", 
+            "--workers", str(workers), 
+            "--n_gen", str(gen), 
+            "--pop_size", str(pop_size), 
+            "--choice", "kubernetes",
+            "--port", "5001",
+            "--host", "10.0.22.243"
+    ]
+        # command[1] = "server_parallelisation.py"
+        # command.append("--host")
+        # command.append("10.0.132.22")
+        # command.append("--port")
+        # command.append("7001")
         app_name = "sbo-server"
-        output_path = "experiments/server_kubernetes_output.csv"
+        # output_path = "experiments/server_kubernetes_output.csv"
 
     pod = deploy.create_pod_object(
         app_name, 
