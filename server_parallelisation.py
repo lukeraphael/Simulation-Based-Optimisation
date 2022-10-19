@@ -1,6 +1,7 @@
 
 import argparse
 import json
+from typing import List
 import numpy as np
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.optimize import minimize
@@ -21,8 +22,7 @@ args.add_argument("--workers", type=int, required=True)
 args.add_argument("--n_gen", type=int, required=True)
 args.add_argument("--pop_size", type=int, required=True)
 args.add_argument("--choice", type=str, required=True, choices=["kubernetes", "argo"], default="argo")
-args.add_argument("--port", type=int, required=True)
-args.add_argument("--host", type=str, required=True)
+args.add_argument("--endpoints", type=List[str], required=True)
 parsed_args = args.parse_args()
 
 # check that choice is valid
@@ -50,7 +50,8 @@ class MyProblem(Problem):
             }
 
             if parsed_args.choice == "kubernetes":
-                endpoint = f"http://{parsed_args.host}:{parsed_args.port}/simulate"
+                # endpoint = f"http://{parsed_args.host}:{parsed_args.port}/simulate"
+                endpoint = parsed_args.endpoints[i % len(parsed_args.endpoints)]
                 futures.append(session.post(endpoint, json=payload))
                 
             elif parsed_args.choice == "argo":
