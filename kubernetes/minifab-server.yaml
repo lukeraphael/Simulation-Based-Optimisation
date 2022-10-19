@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask
+spec:
+  replicas: 10 
+  selector:
+    matchLabels:
+      app: flask
+  template:
+    metadata:
+      labels:
+        app: flask
+    spec:
+      containers:
+      - name: flask
+        image: lukeraphael/minifab:server
+        ports:
+        - containerPort: 5000  
+        command: ["python3", "./main.py", "--port", "5000"]
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+      - key: "kubernetes.azure.com/scalesetpriority"
+        operator: "Equal"
+        value: "spot"
+        effect: "NoSchedule"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: "kubernetes.azure.com/scalesetpriority"
+                operator: In
+                values:
+                - "spot"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask
+  labels:
+    service: flask
+spec:
+  selector:
+    app: flask
+  ports:
+  - port: 5000
+    targetPort: 5000
+    nodePort: 30001
+  type: NodePort

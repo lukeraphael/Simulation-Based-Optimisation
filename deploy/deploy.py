@@ -1,4 +1,3 @@
-from calendar import c
 from typing import List
 from kubernetes import client
 from kubernetes.stream import stream
@@ -6,7 +5,7 @@ import time
 import docker
 import os
 
-def create_namespace(namespace):
+def create_namespace(namespace: str) -> None:
     # Create namespace
     api = client.CoreV1Api()
     body = client.V1Namespace(
@@ -18,7 +17,7 @@ def create_namespace(namespace):
 
     # print(f"[INFO] namespace {resp.metadata.name} created.")
 
-def delete_namespace(namespace):
+def delete_namespace(namespace: str) -> None:
     # Delete namespace
     api = client.CoreV1Api()
     api.delete_namespace(name=namespace)
@@ -59,7 +58,26 @@ def create_pod_object(app_name: str, image: str, command: List[str], pv: str, pv
                 name=pv,
                 persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=pv_claim),
             )],
-        )
+            tolerations=[client.V1Toleration(
+                effect="NoSchedule", 
+                key="kubernetes.azure.com/scalesetpriority",
+                operator="Equal",
+                value="spot",
+            )],
+            affinity=client.V1Affinity(
+                node_affinity=client.V1NodeAffinity(
+                    required_during_scheduling_ignored_during_execution=client.V1NodeSelector(
+                        node_selector_terms=[client.V1NodeSelectorTerm(
+                            match_expressions=[client.V1NodeSelectorRequirement(
+                                key="kubernetes.azure.com/scalesetpriority",
+                                operator="In",
+                                values=["spot"],
+                            )]
+                        )]
+                    )
+                )        
+            )
+        ) 
     )
 
     # return pod object
@@ -77,8 +95,7 @@ def create_pod(pod, namespace):
         body=pod, 
         namespace=namespace
     )
-
-    # print(f"[INFO] pod {resp.metadata.name} created.")
+    return resp
 
 def store_input_file(path: str, content: str, docker_name: str) -> None:
     '''
@@ -86,14 +103,20 @@ def store_input_file(path: str, content: str, docker_name: str) -> None:
     content is data in json format
     path is the path to the file where the data will be stored
     '''
-    docker_client = docker.from_env()
-    container = docker_client.containers.get(docker_name)
-    cmd = [
-        "bash", 
-        "-c",
-        f"echo {content} > {path}",
-    ]
-    container.exec_run(cmd)
+    # docker_client = docker.from_env()
+    # container = docker_client.containers.get(docker_name)
+    # cmd = [
+    #     "bash", 
+    #     "-c",
+    #     f"echo {content} > {path}",
+    # ]
+    # container.exec_run(cmd)
+    
+    # save file to persistent volume, if it doesn't exist, create it
+    if not os.path.exists(path):
+        open(path, "w").close()
+    with open(path, "w") as f:
+        f.write(content)
 
 # returns the contents of the output files as an array
 def delete_pods_and_get_results(namespace: str, docker_name: str, output_paths: List[str]) -> List[str]:
@@ -117,17 +140,18 @@ def delete_pods_and_get_results(namespace: str, docker_name: str, output_paths: 
                 # print(f"[INFO] pod {pod.metadata.name} completed.")
         pods = v1.list_namespaced_pod(namespace=namespace)
 
-    docker_client = docker.from_env()
-    container = docker_client.containers.get(docker_name)
+    # docker_client = docker.from_env()
+    # container = docker_client.containers.get(docker_name)
 
     def get_output_file(path: str) -> str:
-        cmd = [
-            "bash", 
-            "-c",
-            f"cat {path}",
-        ]
-        output = container.exec_run(cmd)
-        return output.output.decode("utf-8")
+        # cmd = [
+        #     "bash", 
+        #     "-c",
+        #     f"cat {path}",
+        # ]
+        # output = container.exec_run(cmd)
+        # return output.output.decode("utf-8")
+        return open(path, "r").read()
     
     res = [get_output_file(path) for path in output_paths]
     # print(f"[INFO] {res}")
@@ -194,3 +218,8 @@ def read_file_from_k8_pod(namespace: str, pod_name: str, path: str) -> str:
             c = command.pop(0)
             # print("Running command... %s\n" % c)
             resp.write_stdin(c)
+
+def get_service_port(namespace: str, service_name: str) -> int:
+    v1 = client.CoreV1Api()
+    resp = v1.read_namespaced_service(name=service_name, namespace=namespace)
+    return resp.spec.ports[0].node_port
