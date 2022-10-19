@@ -5,7 +5,7 @@ A POC of SBO acclerated by running multiple simulations concurrently using conta
 Optimization is done by iteratively collecting outputs from the containerised simulations and performing analysis on the outputs. After each simulation iteration, the next set of inputs is determined by an optimisation algorithm such as the NSGA-II. These set of steps continue iteratively until convergence or a threshold of steps is met.
 
 ## Examples
-An example is provided in the main_server, main_standalone files folder. Here, we optimise the outputs of a wafer frabication plant based on a simulation created by Klayton. There are three types of wafers being produced and three different inputs that affect the amount of wafers manufactured. The examples attempt to optimise all three types of wafers using the NSGA-II algorithm.
+An example is provided in the main_server, main_standalone files folder. Here, we optimise the outputs of a wafer frabication plant simulation based on the model put forth by [Kayton](https://www.proquest.com/docview/199913802?pq-origsite=gscholar&fromopenview=true) et al. There are three types of wafers being produced and three different inputs that affect the amount of wafers manufactured. The examples attempt to optimise the output of all three types of wafers using the NSGA-II algorithm.
 
 This example has the following arguments
 
